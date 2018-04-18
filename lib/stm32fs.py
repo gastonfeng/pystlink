@@ -1,6 +1,6 @@
 import time
-import lib.stm32
-import lib.stlinkex
+
+from pystlink import lib
 
 
 class Flash():

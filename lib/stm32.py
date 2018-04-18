@@ -1,5 +1,4 @@
-import lib.stm32devices
-import lib.stlinkex
+from pystlink import lib
 
 
 class Stm32():

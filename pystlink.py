@@ -1,15 +1,8 @@
-import sys
 import argparse
+import sys
 import time
-import lib.stlinkusb
-import lib.stlinkv2
-import lib.stm32
-import lib.stm32fp
-import lib.stm32fs
-import lib.stm32devices
-import lib.stlinkex
-import lib.dbg
-import lib.srec
+
+from pystlink.lib import stlinkv2, stlinkex, stlinkusb, stm32, stm32fs, stm32fp, stm32devices, dbg
 
 VERSION_STR = "pystlink v0.0.0 (ST-LinkV2)"
 
@@ -82,14 +75,14 @@ class PyStlink():
     def find_mcus_by_core(self):
         cpuid = self._stlink.get_debugreg32(PyStlink.CPUID_REG)
         if cpuid == 0:
-            raise lib.stlinkex.StlinkException('Not connected to CPU')
+            raise stlinkex.StlinkException('Not connected to CPU')
         self._dbg.verbose("CPUID:  %08x" % cpuid)
         partno = 0xfff & (cpuid >> 4)
-        for mcu_core in lib.stm32devices.DEVICES:
+        for mcu_core in stm32devices.DEVICES:
             if mcu_core['part_no'] == partno:
                 self._mcus_by_core = mcu_core
                 return
-        raise lib.stlinkex.StlinkException('PART_NO: 0x%03x is not supported' % partno)
+        raise stlinkex.StlinkException('PART_NO: 0x%03x is not supported' % partno)
 
     def find_mcus_by_devid(self):
         idcode = self._stlink.get_debugreg32(self._mcus_by_core['idcode_reg'])
@@ -99,7 +92,7 @@ class PyStlink():
             if mcu_devid['dev_id'] == devid:
                 self._mcus_by_devid = mcu_devid
                 return
-        raise lib.stlinkex.StlinkException('DEV_ID: 0x%03x is not supported' % devid)
+        raise stlinkex.StlinkException('DEV_ID: 0x%03x is not supported' % devid)
 
     def find_mcus_by_flash_size(self):
         self._flash_size = self._stlink.get_debugreg16(self._mcus_by_devid['flash_size_reg'])
@@ -108,7 +101,7 @@ class PyStlink():
             if mcu['flash_size'] == self._flash_size:
                 self._mcus.append(mcu)
         if not self._mcus:
-            raise lib.stlinkex.StlinkException('Connected CPU with DEV_ID: 0x%03x and FLASH size: %dKB is not supported' % (
+            raise stlinkex.StlinkException('Connected CPU with DEV_ID: 0x%03x and FLASH size: %dKB is not supported' % (
                 self._mcus_by_devid['dev_id'], self._flash_size
             ))
 
@@ -122,7 +115,7 @@ class PyStlink():
                 cpu_type[9] = 'x'
                 cpu_type = ''.join(cpu_type)
             return cpu_type
-        raise lib.stlinkex.StlinkException('"%s" is not STM32 family' % cpu_type)
+        raise stlinkex.StlinkException('"%s" is not STM32 family' % cpu_type)
 
     def filter_detected_cpu(self, expected_cpus):
         cpus = []
@@ -133,7 +126,7 @@ class PyStlink():
                     cpus.append(detected_cpu)
                     break
         if not cpus:
-            raise lib.stlinkex.StlinkException('Connected CPU is not %s but detected is %s %s' % (
+            raise stlinkex.StlinkException('Connected CPU is not %s but detected is %s %s' % (
                 ','.join(expected_cpus),
                 'one of' if len(self._mcus) > 1 else '',
                 ','.join([cpu['type'] for cpu in self._mcus]),
@@ -162,24 +155,24 @@ class PyStlink():
     def load_driver(self):
         flash_driver = self._mcus_by_devid['flash_driver']
         if flash_driver == 'STM32FP':
-            self._driver = lib.stm32fp.Stm32FP(self._stlink, dbg=self._dbg)
+            self._driver = stm32fp.Stm32FP(self._stlink, dbg=self._dbg)
         elif flash_driver == 'STM32FPXL':
-            self._driver = lib.stm32fp.Stm32FPXL(self._stlink, dbg=self._dbg)
+            self._driver = stm32fp.Stm32FPXL(self._stlink, dbg=self._dbg)
         elif flash_driver == 'STM32FS':
-            self._driver = lib.stm32fs.Stm32FS(self._stlink, dbg=self._dbg)
+            self._driver = stm32fs.Stm32FS(self._stlink, dbg=self._dbg)
         else:
-            self._driver = lib.stm32.Stm32(self._stlink, dbg=self._dbg)
+            self._driver = stm32.Stm32(self._stlink, dbg=self._dbg)
 
     def detect_cpu(self, expected_cpus, unmount=False):
-        self._connector = lib.stlinkusb.StlinkUsbConnector(dbg=self._dbg)
+        self._connector = stlinkusb.StlinkUsbConnector(dbg=self._dbg)
         if unmount:
             self._connector.unmount_discovery()
-        self._stlink = lib.stlinkv2.Stlink(self._connector, dbg=self._dbg)
+        self._stlink = stlinkv2.Stlink(self._connector, dbg=self._dbg)
         self._dbg.info("DEVICE: ST-Link/%s" % self._stlink.ver_str)
         self._dbg.info("SUPPLY: %.2fV" % self._stlink.target_voltage)
         self._dbg.verbose("COREID: %08x" % self._stlink.coreid)
         if self._stlink.coreid == 0:
-            raise lib.stlinkex.StlinkException('Not connected to CPU')
+            raise stlinkex.StlinkException('Not connected to CPU')
         self.find_mcus_by_core()
         self._dbg.info("CORE:   %s" % self._mcus_by_core['core'])
         self.find_mcus_by_devid()
@@ -219,7 +212,7 @@ class PyStlink():
 
     def read_file(self, filename):
         if filename.endswith('.srec'):
-            srec = lib.srec.Srec()
+            srec = srec.Srec()
             srec.encode_file(filename)
             size = sum([len(i[1]) for i in srec.buffers])
             self._dbg.info("Loaded %d Bytes from %s file" % (size, filename))
@@ -228,7 +221,7 @@ class PyStlink():
             data = list(f.read())
             self._dbg.info("Loaded %d Bytes from %s file" % (len(data), filename))
             return [(None, data)]
-        raise lib.stlinkex.StlinkException("Error reading file")
+        raise stlinkex.StlinkException("Error reading file")
 
     def dump_mem(self, addr, size):
         print("08x %d" % addr, size)
@@ -282,7 +275,7 @@ class PyStlink():
             addr = int(cmd, 0)
             size = int(params[0], 0)
         else:
-            raise lib.stlinkex.StlinkExceptionBadParam()
+            raise stlinkex.StlinkExceptionBadParam()
         data = self._driver.get_mem(addr, size)
         self.store_file(addr, data, file_name)
 
@@ -290,7 +283,7 @@ class PyStlink():
         cmd = params[0]
         params = params[1:]
         if not params:
-            raise lib.stlinkex.StlinkExceptionBadParam('Missing argument')
+            raise stlinkex.StlinkExceptionBadParam('Missing argument')
         data = int(params[0], 0)
         if self._driver.is_reg(cmd):
             self._driver.core_halt()
@@ -310,7 +303,7 @@ class PyStlink():
         elif params:
             self._driver.fill_mem(int(cmd, 0), int(params[0], 0), value)
         else:
-            raise lib.stlinkex.StlinkExceptionBadParam()
+            raise stlinkex.StlinkExceptionBadParam()
 
     def cmd_write(self, params):
         mem = self.read_file(params[-1])
@@ -318,17 +311,17 @@ class PyStlink():
         if len(mem) == 1 and mem[0][0] is None:
             data = mem[0][1]
             if len(params) != 1:
-                raise lib.stlinkex.StlinkExceptionBadParam('Address is not set')
+                raise stlinkex.StlinkExceptionBadParam('Address is not set')
             if params[0] == 'sram':
                 addr = self._driver.SRAM_START
                 if len(data) > self._sram_size * 1024:
-                    raise lib.stlinkex.StlinkExceptionBadParam('Data are bigger than SRAM')
+                    raise stlinkex.StlinkExceptionBadParam('Data are bigger than SRAM')
             else:
                 addr = int(params[0], 0)
             self._driver.set_mem(addr, data)
             return
         if params:
-            raise lib.stlinkex.StlinkException('Address for write is set by file')
+            raise stlinkex.StlinkException('Address for write is set by file')
         for addr, data in mem:
             self._driver.set_mem(addr, data)
 
@@ -346,13 +339,13 @@ class PyStlink():
         if params and params[0] == 'verify':
             verify = True
             params = params[1:]
-        start_addr = lib.stm32.Stm32.FLASH_START
+        start_addr = stm32.Stm32.FLASH_START
         if len(mem) == 1 and mem[0][0] is None:
             if params:
                 start_addr = int(params[0], 0)
                 params = params[1:]
         if params:
-            raise lib.stlinkex.StlinkExceptionBadParam('Address for write is set by file')
+            raise stlinkex.StlinkExceptionBadParam('Address for write is set by file')
         for addr, data in mem:
             if addr is None:
                 addr = start_addr
@@ -386,7 +379,7 @@ class PyStlink():
                 if params[0] == 'halt':
                     self._driver.core_reset_halt()
                 else:
-                    raise lib.stlinkex.StlinkExceptionBadParam()
+                    raise stlinkex.StlinkExceptionBadParam()
             else:
                 self._driver.core_reset()
         elif cmd == 'halt':
@@ -398,7 +391,7 @@ class PyStlink():
         elif cmd == 'sleep' and len(params) == 1:
             time.sleep(float(params[0]))
         else:
-            raise lib.stlinkex.StlinkExceptionBadParam()
+            raise stlinkex.StlinkExceptionBadParam()
 
     def start(self):
         parser = argparse.ArgumentParser(prog='pystlink', formatter_class=argparse.RawTextHelpFormatter, description=DESCRIPTION_STR, epilog=ACTIONS_HELP_STR)
@@ -415,19 +408,19 @@ class PyStlink():
         group_actions = parser.add_argument_group(title='actions')
         group_actions.add_argument('action', nargs='*', help='actions will be processed sequentially')
         args = parser.parse_args()
-        self._dbg = lib.dbg.Dbg(args.verbosity)
+        self._dbg = dbg.Dbg(args.verbosity)
         runtime_status = 0
         try:
             self.detect_cpu(args.cpu, not args.no_unmount)
             if args.action and self._driver is None:
-                raise lib.stlinkex.StlinkExceptionCpuNotSelected()
+                raise stlinkex.StlinkExceptionCpuNotSelected()
             for action in args.action:
                 self._dbg.verbose('CMD: %s' % action)
                 try:
                     self.cmd(action.split(':'))
-                except lib.stlinkex.StlinkExceptionBadParam as e:
+                except stlinkex.StlinkExceptionBadParam as e:
                     raise e.set_cmd(action)
-        except (lib.stlinkex.StlinkExceptionBadParam, lib.stlinkex.StlinkException) as e:
+        except (stlinkex.StlinkExceptionBadParam, stlinkex.StlinkException) as e:
             self._dbg.error(e)
             runtime_status = 1
         except KeyboardInterrupt:
@@ -447,7 +440,7 @@ class PyStlink():
                         self._dbg.warning('CPU may stay in halt mode', level=1)
                 self._stlink.leave_state()
                 self._stlink.clean_exit()
-            except lib.stlinkex.StlinkException as e:
+            except stlinkex.StlinkException as e:
                 self._dbg.error(e)
                 runtime_status = 1
             self._dbg.verbose('DONE in %0.2fs' % (time.time() - self._start_time))

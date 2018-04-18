@@ -1,6 +1,7 @@
 import usb.core
 import usb.util
-import lib.stlinkex
+
+from pystlink import lib
 
 
 class StlinkUsbConnector():

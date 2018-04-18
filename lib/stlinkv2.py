@@ -1,4 +1,4 @@
-import lib.stlinkex
+from pystlink import lib
 
 
 class Stlink():
