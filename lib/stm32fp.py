@@ -1,6 +1,7 @@
 import time
 
 from pystlink import lib
+from pystlink.lib import stm32
 
 
 class Flash():
@@ -159,7 +160,7 @@ class Flash():
 
 # support all STM32F MCUs with page access to FLASH
 # (STM32F0xx, STM32F1xx and also STM32F3xx)
-class Stm32FP(lib.stm32.Stm32):
+class Stm32FP(stm32.Stm32):
     def _flash_erase_all(self, bank=0):
         flash = Flash(self, self._stlink, self._dbg, bank=bank)
         flash.erase_all()

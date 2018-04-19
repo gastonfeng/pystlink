@@ -1,8 +1,7 @@
 import argparse
-import sys
 import time
 
-from pystlink.lib import stlinkv2, stlinkex, stlinkusb, stm32, stm32fs, stm32fp, stm32devices, dbg
+from pystlink.lib import stlinkex, stlinkv2, stlinkusb, stm32fp, stm32fs, stm32, stm32devices, dbg
 
 VERSION_STR = "pystlink v0.0.0 (ST-LinkV2)"
 
@@ -444,8 +443,10 @@ class PyStlink():
                 self._dbg.error(e)
                 runtime_status = 1
             self._dbg.verbose('DONE in %0.2fs' % (time.time() - self._start_time))
-        if runtime_status:
-            sys.exit(runtime_status)
+
+
+# if runtime_status:
+#            sys.exit(runtime_status)
 
 
 if __name__ == "__main__":
