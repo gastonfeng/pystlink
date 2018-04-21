@@ -79,6 +79,7 @@ class StlinkUsbConnector():
                 if retry:
                     retry -= 1
                     continue
+                print(e)
                 raise lib.stlinkex.StlinkException("USB Error: %s" % e)
             return None
 

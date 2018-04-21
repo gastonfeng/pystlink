@@ -70,6 +70,7 @@ class PyStlink():
         self._connector = None
         self._stlink = None
         self._driver = None
+        self._dbg = dbg.Dbg(3)
 
     def find_mcus_by_core(self):
         cpuid = self._stlink.get_debugreg32(PyStlink.CPUID_REG)
@@ -183,6 +184,7 @@ class PyStlink():
         self._dbg.info("FLASH:  %dKB" % self._flash_size)
         self.find_sram_eeprom_size()
         self.load_driver()
+        return [self._stlink.coreid]
 
     def print_buffer(self, addr, data, bytes_per_line=16):
         prev_chunk = []
@@ -318,7 +320,7 @@ class PyStlink():
             else:
                 addr = int(params[0], 0)
             self._driver.set_mem(addr, data)
-            return
+            return True
         if params:
             raise stlinkex.StlinkException('Address for write is set by file')
         for addr, data in mem:
@@ -349,6 +351,7 @@ class PyStlink():
             if addr is None:
                 addr = start_addr
             self._driver.flash_write(addr, data, erase=erase, verify=verify, erase_sizes=self._mcus_by_devid['erase_sizes'])
+        return True
 
     def cmd(self, param):
         cmd = param[0]

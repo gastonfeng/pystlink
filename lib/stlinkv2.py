@@ -190,7 +190,7 @@ class Stlink():
         cmd = [Stlink.STLINK_DEBUG_COMMAND, Stlink.STLINK_DEBUG_APIV2_WRITEDEBUGREG]
         cmd.extend(list(addr.to_bytes(4, byteorder='little')))
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
-        return self._connector.xfer(cmd, rx_len=2)
+        return self._connector.xfer(cmd, rx_len=2,retry=10)
 
     def get_debugreg32(self, addr):
         if addr % 4:
