@@ -71,13 +71,14 @@ class PyStlink():
         self._stlink = None
         self._driver = None
         self._dbg = dbg.Dbg(3)
+        self.cpuid=None
 
     def find_mcus_by_core(self):
-        cpuid = self._stlink.get_debugreg32(PyStlink.CPUID_REG)
-        if cpuid == 0:
+        self.cpuid = self._stlink.get_debugreg32(PyStlink.CPUID_REG)
+        if self.cpuid == 0:
             raise stlinkex.StlinkException('Not connected to CPU')
-        self._dbg.verbose("CPUID:  %08x" % cpuid)
-        partno = 0xfff & (cpuid >> 4)
+        self._dbg.verbose("CPUID:  %08x" % self.cpuid)
+        partno = 0xfff & (self.cpuid >> 4)
         for mcu_core in stm32devices.DEVICES:
             if mcu_core['part_no'] == partno:
                 self._mcus_by_core = mcu_core
