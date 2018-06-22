@@ -79,8 +79,8 @@ class StlinkUsbConnector():
                 if retry:
                     retry -= 1
                     continue
-                print(e)
-                raise lib.stlinkex.StlinkException("USB Error: %s" % e)
+                txt=e.strerror.decode('GBK')
+                raise lib.stlinkex.StlinkException("USB Error: %s" % txt)
             return None
 
     def unmount_discovery(self):
